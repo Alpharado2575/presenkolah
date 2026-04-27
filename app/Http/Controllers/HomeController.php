@@ -29,6 +29,26 @@ class HomeController extends Controller
 
         $presensiHariIni = $user->presensiHariIni();
 
-        return view('home.index', compact('user', 'pengumumans', 'stats', 'presensiHariIni'));
+        // Data tambahan untuk guru: semua presensi siswa, dengan nama & kelas
+        $dataSiswa = null;
+        if ($user->isGuru()) {
+            $dataSiswa = Presensi::with('user')
+                ->whereHas('user', function ($query) {
+                    $query->where('role', 'siswa');
+                })
+                ->latest('tanggal')
+                ->get()
+                ->map(function ($presensi) {
+                    // Tambahkan field nama dan kelas dari relasi user
+                    $presensi->nama  = $presensi->user->nama;
+                    $presensi->kelas = $presensi->user->kelas;
+
+                    // Hapus relasi user agar output lebih bersih (opsional)
+                    unset($presensi->user);
+
+                    return $presensi;
+                });
+        }
+        return view('home.index', compact('user', 'pengumumans', 'stats', 'presensiHariIni', 'dataSiswa'));
     }
 }

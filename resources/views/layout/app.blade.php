@@ -129,6 +129,15 @@
                    class="nav-link @active('home')">
                     <i class="bi bi-house"></i> Beranda
                 </a>
+
+                {{-- Menu khusus untuk Guru --}}
+                @if(auth()->user()->isGuru())
+                    <a href="{{ route('presensi.siswa') }}"
+                       class="nav-link @active('presensi.siswa')">
+                        <i class="bi bi-people"></i> Data Siswa
+                    </a>
+                @endif
+
                 <a href="{{ route('presensi.index') }}"
                    class="nav-link @active('presensi.index')">
                     <i class="bi bi-clock-history"></i> Presensi

@@ -28,6 +28,7 @@ Route::middleware(['auth', 'role:siswa,guru'])->group(function () {
         Route::post('/pulang', [PresensiController::class, 'pulang'])->name('pulang');
         Route::get('/riwayat',[PresensiController::class, 'riwayat'])->name('riwayat');
         Route::post('/izin',   [PresensiController::class, 'uploadIzin'])->name('izin');
+        Route::get('/rekap-siswa',[PresensiController::class, 'dataPresensiSiswa'])->name('siswa');
     });
 });
 

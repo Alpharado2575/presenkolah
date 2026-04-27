@@ -111,4 +111,27 @@ class PresensiController extends Controller
 
         return back()->with('success', 'Keterangan izin/sakit berhasil dikirim.');
     }
+
+    public function dataPresensiSiswa(Request $request)
+{
+    $bulan = $request->get('bulan', date('m'));
+    $tahun = $request->get('tahun', date('Y'));
+
+    $dataSiswa = Presensi::with('user')
+        ->whereHas('user', function ($query) {
+            $query->where('role', 'siswa');
+        })
+        ->when($bulan, fn($q) => $q->whereMonth('tanggal', $bulan))
+        ->when($tahun, fn($q) => $q->whereYear('tanggal', $tahun))
+        ->latest('tanggal')
+        ->paginate(15)
+        ->through(function ($presensi) {
+            $presensi->nama  = $presensi->user->nama;
+            $presensi->kelas = $presensi->user->kelas;
+            unset($presensi->user);
+            return $presensi;
+        });
+
+    return view('presensi.siswa', compact('dataSiswa'));
+}
 }
