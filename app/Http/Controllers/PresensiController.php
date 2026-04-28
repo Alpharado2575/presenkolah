@@ -60,12 +60,12 @@ class PresensiController extends Controller
             'status'    => 'hadir',
             'latitude'  => $request->latitude,
             'longitude' => $request->longitude,
-            'foto_masuk'      => $filename
+            'foto_masuk'=> $filename
         ]);
 
         // ✅ EMAIL
         try {
-            Mail::raw("Presensi MASUK berhasil\nUser: {$user->nama}\nJam: " . now()->format('H:i'), function ($message) {
+            Mail::raw("Presensi MASUK berhasil\nUser: {$user->nama}\nJam: " . now('Asia/Jakarta')->format('H:i'), function ($message) {
                 $message->to('muhammadalfarado5@gmail.com')
                         ->subject('Presensi Masuk');
             });
@@ -112,12 +112,12 @@ class PresensiController extends Controller
         // ✅ UPDATE DB
         $presensi->update([
             'jam_pulang' => now('Asia/Jakarta')->toTimeString(),
-            'foto_pulang'       => $filename // overwrite atau bisa pisah kolom kalau mau
+            'foto_pulang'=> $filename 
         ]);
 
         // EMAIL
         try {
-            Mail::raw("Presensi PULANG berhasil\nUser: {$user->nama}\nJam: " . now()->format('H:i'), function ($message) {
+            Mail::raw("Presensi PULANG berhasil\nUser: {$user->nama}\nJam: " . now('Asia/Jakarta')->format('H:i'), function ($message) {
                 $message->to('muhammadalfarado5@gmail.com')
                         ->subject('Presensi Pulang');
             });
@@ -131,8 +131,8 @@ class PresensiController extends Controller
     public function riwayat(Request $request)
     {
         $user  = Auth::user();
-        $bulan = $request->bulan ?? now()->month;
-        $tahun = $request->tahun ?? now()->year;
+        $bulan = $request->bulan ?? now('Asia/Jakarta')->month;
+        $tahun = $request->tahun ?? now('Asia/Jakarta')->year;
 
         // Query dasar
         $query = Presensi::where('user_id', $user->id)
@@ -182,31 +182,27 @@ class PresensiController extends Controller
 
         return back()->with('success', 'Keterangan izin/sakit berhasil dikirim.');
     }
-<<<<<<< Updated upstream
 
     public function dataPresensiSiswa(Request $request)
-{
-    $bulan = $request->get('bulan', date('m'));
-    $tahun = $request->get('tahun', date('Y'));
+    {
+        $bulan = $request->get('bulan', date('m'));
+        $tahun = $request->get('tahun', date('Y'));
 
-    $dataSiswa = Presensi::with('user')
-        ->whereHas('user', function ($query) {
-            $query->where('role', 'siswa');
-        })
-        ->when($bulan, fn($q) => $q->whereMonth('tanggal', $bulan))
-        ->when($tahun, fn($q) => $q->whereYear('tanggal', $tahun))
-        ->latest('tanggal')
-        ->paginate(15)
-        ->through(function ($presensi) {
-            $presensi->nama  = $presensi->user->nama;
-            $presensi->kelas = $presensi->user->kelas;
-            unset($presensi->user);
-            return $presensi;
-        });
+        $dataSiswa = Presensi::with('user')
+            ->whereHas('user', function ($query) {
+                $query->where('role', 'siswa');
+            })
+            ->when($bulan, fn($q) => $q->whereMonth('tanggal', $bulan))
+            ->when($tahun, fn($q) => $q->whereYear('tanggal', $tahun))
+            ->latest('tanggal')
+            ->paginate(15)
+            ->through(function ($presensi) {
+                $presensi->nama  = $presensi->user->nama;
+                $presensi->kelas = $presensi->user->kelas;
+                unset($presensi->user);
+                return $presensi;
+            });
 
-    return view('presensi.siswa', compact('dataSiswa'));
+        return view('presensi.siswa', compact('dataSiswa'));
+    }
 }
-}
-=======
-}
->>>>>>> Stashed changes

@@ -76,8 +76,39 @@
                             <td class="small">{{ $presensi->kelas }}</td>
                             <td class="small">{{ \Carbon\Carbon::parse($presensi->tanggal)->format('d/m/Y') }}</td>
                             <td class="small">{{ \Carbon\Carbon::parse($presensi->tanggal)->translatedFormat('l') }}</td>
-                            <td class="small">{{ $presensi->jam_masuk ? \Carbon\Carbon::parse($presensi->jam_masuk)->format('H:i') : '—' }}</td>
-                            <td class="small">{{ $presensi->jam_pulang ? \Carbon\Carbon::parse($presensi->jam_pulang)->format('H:i') : '—' }}</td>
+                            
+                            {{-- MASUK (Ditambah Foto) --}}
+                            <td class="small">
+                                @if($presensi->jam_masuk)
+                                    <div>{{ \Carbon\Carbon::parse($presensi->jam_masuk)->format('H:i') }}</div>
+                                    @if($presensi->foto_masuk)
+                                        <img src="{{ asset('storage/presensi/'.$presensi->foto_masuk) }}"
+                                             width="60"
+                                             class="mt-1 rounded border"
+                                             style="cursor:pointer"
+                                             onclick="showImage(this.src)">
+                                    @endif
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            
+                            {{-- PULANG (Ditambah Foto) --}}
+                            <td class="small">
+                                @if($presensi->jam_pulang)
+                                    <div>{{ \Carbon\Carbon::parse($presensi->jam_pulang)->format('H:i') }}</div>
+                                    @if($presensi->foto_pulang)
+                                        <img src="{{ asset('storage/presensi/'.$presensi->foto_pulang) }}"
+                                             width="60"
+                                             class="mt-1 rounded border"
+                                             style="cursor:pointer"
+                                             onclick="showImage(this.src)">
+                                    @endif
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            
                             <td>
                                 <span class="badge badge-{{ $presensi->status }}">
                                     {{ ucfirst($presensi->status) }}
@@ -86,7 +117,7 @@
                             <td class="small text-muted">{{ $presensi->keterangan ?? '—' }}</td>
                             <td>
                                 @if(isset($presensi->bukti_izin) && $presensi->bukti_izin)
-                                    <a href="{{ asset('uploads/bukti/' . $presensi->bukti_izin) }}" target="_blank"
+                                    <a href="{{ asset('storage/izin/' . $presensi->bukti_izin) }}" target="_blank"
                                        class="btn btn-xs btn-outline-info btn-sm">
                                         <i class="bi bi-paperclip"></i> Lihat
                                     </a>
@@ -113,4 +144,22 @@
         @endif
     </div>
 </div>
+
+{{-- Modal Preview Gambar ────────────────────────────────────────────────────── --}}
+<div id="imageModal"
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:9999;"
+     onclick="this.style.display='none'">
+    <img id="modalImg" style="max-width:90%; max-height:90%; border-radius:10px;">
+</div>
 @endsection
+
+{{-- Script untuk memunculkan modal gambar ───────────────────────────────────── --}}
+@push('scripts')
+<script>
+function showImage(src) {
+    document.getElementById('modalImg').src = src;
+    document.getElementById('imageModal').style.display = 'flex';
+}
+</script>
+@endpush
