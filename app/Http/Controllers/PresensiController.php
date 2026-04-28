@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
 use App\Models\Presensi;
 
 class PresensiController extends Controller
@@ -25,21 +26,53 @@ class PresensiController extends Controller
     {
         $user = Auth::user();
 
-        // Cegah double presensi
         if ($user->presensiHariIni()) {
             return back()->withErrors(['msg' => 'Anda sudah melakukan presensi masuk hari ini.']);
         }
 
+        // ✅ VALIDASI FOTO
+        $request->validate([
+            'foto' => 'required|image|mimes:jpg,jpeg,png|max:2048'
+        ]);
+
+        // ✅ UPLOAD FOTO
+        $file = $request->file('foto');
+        $filename = 'masuk_' . $user->id . '_' . time() . '.' . $file->extension();
+
+        // simpan lokal
+        $file->storeAs('presensi', $filename, 'public');
+
+        // upload ke FTP
+        try {
+            Storage::disk('ftp')->put(
+                $filename,
+                fopen($file->getRealPath(), 'r+')
+            );
+        } catch (\Exception $e) {
+            \Log::error('FTP ERROR: ' . $e->getMessage());
+        }
+
+        // ✅ SIMPAN DB
         Presensi::create([
             'user_id'   => $user->id,
-            'tanggal'   => today(),
-            'jam_masuk' => now()->toTimeString(),
+            'tanggal'   => today('Asia/Jakarta'),
+            'jam_masuk' => now('Asia/Jakarta')->toTimeString(),
             'status'    => 'hadir',
             'latitude'  => $request->latitude,
             'longitude' => $request->longitude,
+            'foto_masuk'      => $filename
         ]);
 
-        return back()->with('success', 'Presensi masuk berhasil dicatat pukul ' . now()->format('H:i'));
+        // ✅ EMAIL
+        try {
+            Mail::raw("Presensi MASUK berhasil\nUser: {$user->nama}\nJam: " . now()->format('H:i'), function ($message) {
+                $message->to('muhammadalfarado5@gmail.com')
+                        ->subject('Presensi Masuk');
+            });
+        } catch (\Exception $e) {
+            \Log::error('MAIL ERROR: '.$e->getMessage());
+        }
+        return back()->with('success', 'Presensi masuk berhasil pukul ' . now('Asia/Jakarta')->format('H:i'));
     }
 
     public function pulang(Request $request)
@@ -55,9 +88,44 @@ class PresensiController extends Controller
             return back()->withErrors(['msg' => 'Anda sudah melakukan presensi pulang.']);
         }
 
-        $presensi->update(['jam_pulang' => now()->toTimeString()]);
+        // ✅ VALIDASI FOTO
+        $request->validate([
+            'foto' => 'required|image|mimes:jpg,jpeg,png|max:2048'
+        ]);
 
-        return back()->with('success', 'Presensi pulang berhasil dicatat pukul ' . now()->format('H:i'));
+        // ✅ UPLOAD FOTO
+        $file = $request->file('foto');
+        $filename = 'pulang_' . $user->id . '_' . time() . '.' . $file->extension();
+
+        $file->storeAs('presensi', $filename, 'public');
+
+        // FTP
+        try {
+            Storage::disk('ftp')->put(
+                $filename,
+                fopen($file->getRealPath(), 'r+')
+            );
+        } catch (\Exception $e) {
+            \Log::error('FTP ERROR: ' . $e->getMessage());
+        }
+
+        // ✅ UPDATE DB
+        $presensi->update([
+            'jam_pulang' => now('Asia/Jakarta')->toTimeString(),
+            'foto_pulang'       => $filename // overwrite atau bisa pisah kolom kalau mau
+        ]);
+
+        // EMAIL
+        try {
+            Mail::raw("Presensi PULANG berhasil\nUser: {$user->nama}\nJam: " . now()->format('H:i'), function ($message) {
+                $message->to('muhammadalfarado5@gmail.com')
+                        ->subject('Presensi Pulang');
+            });
+        } catch (\Exception $e) {
+            \Log::error('MAIL PULANG ERROR: '.$e->getMessage());
+        }
+
+        return back()->with('success', 'Presensi pulang berhasil pukul ' . now('Asia/Jakarta')->format('H:i'));
     }
 
     public function riwayat(Request $request)
@@ -66,17 +134,20 @@ class PresensiController extends Controller
         $bulan = $request->bulan ?? now()->month;
         $tahun = $request->tahun ?? now()->year;
 
-        $riwayat = Presensi::where('user_id', $user->id)
+        // Query dasar
+        $query = Presensi::where('user_id', $user->id)
             ->whereMonth('tanggal', $bulan)
-            ->whereYear('tanggal', $tahun)
-            ->orderBy('tanggal', 'desc')
-            ->paginate(20);
+            ->whereYear('tanggal', $tahun);
 
+        // Data untuk tabel
+        $riwayat = (clone $query)->orderBy('tanggal', 'desc')->paginate(20);
+
+        // Data untuk statistik total sebulan
         $stats = [
-            'hadir' => $riwayat->where('status', 'hadir')->count(),
-            'izin'  => $riwayat->where('status', 'izin')->count(),
-            'sakit' => $riwayat->where('status', 'sakit')->count(),
-            'alpha' => $riwayat->where('status', 'alpha')->count(),
+            'hadir' => (clone $query)->where('status', 'hadir')->count(),
+            'izin'  => (clone $query)->where('status', 'izin')->count(),
+            'sakit' => (clone $query)->where('status', 'sakit')->count(),
+            'alpha' => (clone $query)->where('status', 'alpha')->count(),
         ];
 
         return view('presensi.riwayat', compact('riwayat', 'stats', 'bulan', 'tahun'));
@@ -97,7 +168,7 @@ class PresensiController extends Controller
         if ($request->hasFile('bukti')) {
             $file     = $request->file('bukti');
             $namaFile = time() . '_' . $user->id . '.' . $file->extension();
-            $file->move(public_path('uploads/izin'), $namaFile);
+            $file->storeAs('izin', $namaFile, 'public');
         }
 
         Presensi::updateOrCreate(
@@ -111,6 +182,7 @@ class PresensiController extends Controller
 
         return back()->with('success', 'Keterangan izin/sakit berhasil dikirim.');
     }
+<<<<<<< Updated upstream
 
     public function dataPresensiSiswa(Request $request)
 {
@@ -135,3 +207,6 @@ class PresensiController extends Controller
     return view('presensi.siswa', compact('dataSiswa'));
 }
 }
+=======
+}
+>>>>>>> Stashed changes

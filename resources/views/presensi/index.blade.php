@@ -44,18 +44,26 @@
 
                 {{-- Tombol Presensi --}}
                 @if(!$sudahMasuk)
-                    <form action="{{ route('presensi.masuk') }}" method="POST">
+                    <form action="{{ route('presensi.masuk') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="latitude"  id="lat">
                         <input type="hidden" name="longitude" id="lng">
+                         <div class="mb-3">
+                            <label class="form-label small fw-semibold">Foto Presensi</label>
+                            <input type="file" name="foto" class="form-control" accept="image/*" capture="environment" required>
+                        </div>
+
                         <button type="submit" class="btn btn-success w-100 py-3"
                                 onclick="getLocation()">
                             <i class="bi bi-geo-alt-fill me-1"></i> Presensi Masuk
                         </button>
                     </form>
                 @elseif(!$sudahPulang)
-                    <form action="{{ route('presensi.pulang') }}" method="POST">
+                    <form action="{{ route('presensi.pulang') }}" method="POST" enctype="multipart/form-data"> 
                         @csrf
+                        <div class="mb-3">
+                            <input type="file" name="foto" class="form-control" accept="image/*" capture="environment" required>
+                        </div>
                         <button type="submit" class="btn btn-warning w-100 py-3">
                             <i class="bi bi-house-door-fill me-1"></i> Presensi Pulang
                         </button>

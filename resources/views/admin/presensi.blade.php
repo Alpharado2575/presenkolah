@@ -3,7 +3,7 @@
 @section('page-title', 'Data Presensi')
 
 @section('content')
-{{-- Filter ────────────────────────────────────────────────────────────────── --}}
+{{-- Filter --}}
 <div class="card stat-card mb-4">
     <div class="card-body">
         <form action="{{ route('admin.presensi') }}" method="GET" class="row g-2 align-items-end">
@@ -45,7 +45,7 @@
     </div>
 </div>
 
-{{-- Tabel ────────────────────────────────────────────────────────────────── --}}
+{{-- Tabel --}}
 <div class="card stat-card">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -56,8 +56,8 @@
                         <th>Nama</th>
                         <th>Role</th>
                         <th>Tanggal</th>
-                        <th>Jam Masuk</th>
-                        <th>Jam Pulang</th>
+                        <th>Masuk</th>
+                        <th>Pulang</th>
                         <th>Status</th>
                         <th>Keterangan</th>
                         <th>Bukti</th>
@@ -75,14 +75,47 @@
                                 </span>
                             </td>
                             <td class="small">{{ $p->tanggal->format('d/m/Y') }}</td>
-                            <td class="small">{{ $p->jam_masuk  ? \Carbon\Carbon::parse($p->jam_masuk)->format('H:i')  : '—' }}</td>
-                            <td class="small">{{ $p->jam_pulang ? \Carbon\Carbon::parse($p->jam_pulang)->format('H:i') : '—' }}</td>
+
+                            {{-- MASUK --}}
+                            <td class="small">
+                                @if($p->jam_masuk)
+                                    <div>{{ \Carbon\Carbon::parse($p->jam_masuk)->format('H:i') }}</div>
+                                    @if($p->foto_masuk)
+                                        <img src="{{ asset('storage/presensi/'.$p->foto_masuk) }}"
+                                             width="60"
+                                             class="mt-1 rounded border"
+                                             style="cursor:pointer"
+                                             onclick="showImage(this.src)">
+                                    @endif
+                                @else
+                                    —
+                                @endif
+                            </td>
+
+                            {{-- PULANG --}}
+                            <td class="small">
+                                @if($p->jam_pulang)
+                                    <div>{{ \Carbon\Carbon::parse($p->jam_pulang)->format('H:i') }}</div>
+                                    @if($p->foto_pulang)
+                                        <img src="{{ asset('storage/presensi/'.$p->foto_pulang) }}"
+                                             width="60"
+                                             class="mt-1 rounded border"
+                                             style="cursor:pointer"
+                                             onclick="showImage(this.src)">
+                                    @endif
+                                @else
+                                    —
+                                @endif
+                            </td>
+
                             <td>
                                 <span class="badge badge-{{ $p->status }}">{{ ucfirst($p->status) }}</span>
                             </td>
+
                             <td class="small text-muted" style="max-width:150px">
                                 {{ Str::limit($p->keterangan, 50) ?? '—' }}
                             </td>
+
                             <td>
                                 @if($p->buktiUrl())
                                     <a href="{{ $p->buktiUrl() }}" target="_blank" class="btn btn-sm btn-outline-info">
@@ -92,6 +125,7 @@
                                     <span class="text-muted small">—</span>
                                 @endif
                             </td>
+
                             <td>
                                 <button class="btn btn-sm btn-outline-primary"
                                         onclick="editPresensi({{ $p }}, {{ $p->id }})">
@@ -109,13 +143,24 @@
                 </tbody>
             </table>
         </div>
+
         @if($presensis->hasPages())
-            <div class="px-3 py-3 border-top">{{ $presensis->withQueryString()->links() }}</div>
+            <div class="px-3 py-3 border-top">
+                {{ $presensis->withQueryString()->links() }}
+            </div>
         @endif
     </div>
 </div>
 
-{{-- Modal Edit Presensi ─────────────────────────────────────────────────── --}}
+{{-- Modal Preview Gambar --}}
+<div id="imageModal"
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:9999;"
+     onclick="this.style.display='none'">
+    <img id="modalImg" style="max-width:90%; max-height:90%; border-radius:10px;">
+</div>
+
+{{-- Modal Edit --}}
 <div class="modal fade" id="modalEditPresensi" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -127,32 +172,21 @@
                 @csrf @method('PUT')
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Status</label>
-                        <select name="status" class="form-select" id="editStatus">
+                        <label>Status</label>
+                        <select name="status" id="editStatus" class="form-select">
                             <option value="hadir">Hadir</option>
                             <option value="izin">Izin</option>
                             <option value="sakit">Sakit</option>
                             <option value="alpha">Alpha</option>
                         </select>
                     </div>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Jam Masuk</label>
-                            <input type="time" name="jam_masuk" id="editJamMasuk" class="form-control">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Jam Pulang</label>
-                            <input type="time" name="jam_pulang" id="editJamPulang" class="form-control">
-                        </div>
-                    </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label small fw-semibold">Keterangan</label>
-                        <textarea name="keterangan" id="editKeterangan" class="form-control" rows="3"></textarea>
-                    </div>
+                    <input type="time" name="jam_masuk" id="editJamMasuk" class="form-control mb-2">
+                    <input type="time" name="jam_pulang" id="editJamPulang" class="form-control mb-2">
+                    <textarea name="keterangan" id="editKeterangan" class="form-control"></textarea>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Update</button>
+                    <button class="btn btn-primary">Update</button>
                 </div>
             </form>
         </div>
@@ -162,12 +196,17 @@
 
 @push('scripts')
 <script>
+function showImage(src) {
+    document.getElementById('modalImg').src = src;
+    document.getElementById('imageModal').style.display = 'flex';
+}
+
 function editPresensi(p, id) {
     document.getElementById('formEditPresensi').action = `/admin/presensi/${id}`;
-    document.getElementById('editStatus').value       = p.status;
-    document.getElementById('editJamMasuk').value     = p.jam_masuk  ? p.jam_masuk.slice(0,5)  : '';
-    document.getElementById('editJamPulang').value    = p.jam_pulang ? p.jam_pulang.slice(0,5) : '';
-    document.getElementById('editKeterangan').value   = p.keterangan ?? '';
+    document.getElementById('editStatus').value = p.status;
+    document.getElementById('editJamMasuk').value = p.jam_masuk ? p.jam_masuk.slice(0,5) : '';
+    document.getElementById('editJamPulang').value = p.jam_pulang ? p.jam_pulang.slice(0,5) : '';
+    document.getElementById('editKeterangan').value = p.keterangan ?? '';
     new bootstrap.Modal(document.getElementById('modalEditPresensi')).show();
 }
 </script>

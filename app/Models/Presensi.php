@@ -18,6 +18,8 @@ class Presensi extends Model
         'bukti_izin',   // nama file yang di-upload ke FTP/storage
         'latitude',
         'longitude',
+        'foto_masuk',
+        'foto_pulang',
     ];
 
     protected $casts = [

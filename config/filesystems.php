@@ -62,7 +62,7 @@ return [
 
 	'ftp' => [
             'driver' => 'ftp',
-            'host' => env('FTP_HOST', '127.0.0.1'),
+            'host' => env('FTP_HOST', 'ftp://presenkolah.sch.id'),
             'username' => env('FTP_USERNAME', 'adminftp'),
             'password' => env('FTP_PASSWORD', '123123'),
             'root' => env('FTP_ROOT', '/'),

@@ -3,7 +3,7 @@
 @section('page-title', 'Riwayat Presensi')
 
 @section('content')
-{{-- Filter ────────────────────────────────────────────────────────────────── --}}
+{{-- Filter --}}
 <div class="card stat-card mb-4">
     <div class="card-body">
         <form action="{{ route('presensi.riwayat') }}" method="GET" class="row g-2 align-items-end">
@@ -34,7 +34,7 @@
     </div>
 </div>
 
-{{-- Statistik ─────────────────────────────────────────────────────────────── --}}
+{{-- Statistik --}}
 <div class="row g-3 mb-4">
     @foreach([
         ['hadir', 'Hadir',  'success', '#157347',  '#d1f0e0', 'bi-check-circle'],
@@ -55,7 +55,7 @@
     @endforeach
 </div>
 
-{{-- Tabel Riwayat ──────────────────────────────────────────────────────────── --}}
+{{-- Tabel Riwayat --}}
 <div class="card stat-card">
     <div class="card-header bg-white fw-bold border-0 pt-3">
         <i class="bi bi-journal-text text-primary me-1"></i>
@@ -69,8 +69,8 @@
                         <th>#</th>
                         <th>Tanggal</th>
                         <th>Hari</th>
-                        <th>Jam Masuk</th>
-                        <th>Jam Pulang</th>
+                        <th>Masuk</th>
+                        <th>Pulang</th>
                         <th>Status</th>
                         <th>Keterangan</th>
                         <th>Bukti</th>
@@ -82,14 +82,41 @@
                             <td class="text-muted small">{{ $riwayat->firstItem() + $i }}</td>
                             <td class="small fw-semibold">{{ $r->tanggal->format('d/m/Y') }}</td>
                             <td class="small">{{ $r->tanggal->translatedFormat('l') }}</td>
-                            <td class="small">{{ $r->jam_masuk  ? \Carbon\Carbon::parse($r->jam_masuk)->format('H:i')  : '—' }}</td>
-                            <td class="small">{{ $r->jam_pulang ? \Carbon\Carbon::parse($r->jam_pulang)->format('H:i') : '—' }}</td>
+
+                            {{-- FOTO + JAM MASUK --}}
+                            <td class="small">
+                                @if($r->jam_masuk)
+                                    <div>{{ \Carbon\Carbon::parse($r->jam_masuk)->format('H:i') }}</div>
+                                    @if($r->foto_masuk)
+                                        <img src="{{ asset('storage/presensi/'.$r->foto_masuk) }}"
+                                             width="60" class="mt-1 rounded border">
+                                    @endif
+                                @else
+                                    —
+                                @endif
+                            </td>
+
+                            {{-- FOTO + JAM PULANG --}}
+                            <td class="small">
+                                @if($r->jam_pulang)
+                                    <div>{{ \Carbon\Carbon::parse($r->jam_pulang)->format('H:i') }}</div>
+                                    @if($r->foto_pulang)
+                                        <img src="{{ asset('storage/presensi/'.$r->foto_pulang) }}"
+                                             width="60" class="mt-1 rounded border">
+                                    @endif
+                                @else
+                                    —
+                                @endif
+                            </td>
+
                             <td>
                                 <span class="badge badge-{{ $r->status }}">
                                     {{ ucfirst($r->status) }}
                                 </span>
                             </td>
+
                             <td class="small text-muted">{{ $r->keterangan ?? '—' }}</td>
+
                             <td>
                                 @if($r->buktiUrl())
                                     <a href="{{ $r->buktiUrl() }}" target="_blank"
@@ -112,6 +139,7 @@
                 </tbody>
             </table>
         </div>
+
         @if($riwayat->hasPages())
             <div class="px-3 py-3 border-top">
                 {{ $riwayat->withQueryString()->links() }}
@@ -119,4 +147,4 @@
         @endif
     </div>
 </div>
-@endsection
+@endsection 
